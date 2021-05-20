@@ -17,11 +17,12 @@ func NewSocialCmd(cmdContainer *cmdutil.CMDContainerFactory) *cobra.Command {
 
 func socialRun(cmdContainer *cmdutil.CMDContainerFactory,usernames []string) error{
 
+	// creating a new httpClient from factory
 	client,err := cmdContainer.HttpClient()
 	if err!=nil{
 		return  err
 	}
-	sherlockObj := sherlock.SherLock{usernames,client}
+	sherlockObj := sherlock.NewSherLock(usernames,client)
 	sherlockObj.Run()
 	return nil
 }

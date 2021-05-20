@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-// This is a factory of factory
+// New This is a factory of factory
 func New() *cmdutil.CMDContainerFactory {
 	io := iostreams.System()
 	var cachedConfig *config.Configuration
@@ -28,5 +28,5 @@ func New() *cmdutil.CMDContainerFactory {
 		return NewHttpClient(io, cfg), nil
 	}
 
-	return &cmdutil.CMDContainerFactory{io, configFunc, httpClientFunc}
+	return &cmdutil.CMDContainerFactory{IOStreams: io, Config: configFunc, HttpClient: httpClientFunc}
 }

@@ -16,10 +16,11 @@ func NewHttpClient(io *iostreams.IOStreams, configuration *config.Configuration)
 		opts = append(opts, client.VerboseLog(io.ErrOut, logTraffic, io.IsStderrTTY()))
 	}
 
-	// create opts based on configuration options
-	//opts = append(opts,
-	//	//client.AddHeader("User-Agent", fmt.Sprintf("GitHub CLI %s", appVersion)),
-	//)
+	//create opts based on configuration options
+	opts = append(opts,
+		client.AddHeader("User-Agent",
+				"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:55.0) Gecko/20100101 Firefox/55.0"),
+	)
 
 	return client.NewHTTPClient(opts...)
 }
