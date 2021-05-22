@@ -7,6 +7,7 @@ import (
 	urlpkg "net/url"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type SherLock struct {
@@ -21,6 +22,18 @@ func NewSherLock(usernames []string, client *http.Client) *SherLock {
 	}
 }
 
+type SherlockRequests struct {
+	Req chan *http.Request
+	Err chan error
+}
+
+func NewSherlockRequests() *SherlockRequests {
+	return &SherlockRequests{
+		Req: make(chan *http.Request, 20),
+		Err: make(chan error, 20),
+	}
+}
+
 func (sl *SherLock) Run() (bool, error) {
 
 	sites, err := NewSites(urlpkg.URL{}, sl.Client)
@@ -28,39 +41,53 @@ func (sl *SherLock) Run() (bool, error) {
 		return false, err
 	}
 
-	// TODO: Add goroutine magic
 	for _, username := range sl.Usernames {
-		// TODO: Complete the package
-		fmt.Println(username)
+		//reqChans := NewSherlockRequests()
+		var reqs []*http.Request
 		for site, data := range sites {
-			req, err := prepareRequest(sl.Client, username, site, data)
-			if err != nil {
-				fmt.Println(fmt.Errorf("request halted %v", err))
-			} else {
-				response, err := sl.Client.Do(req)
-				if err != nil {
-					fmt.Println(fmt.Errorf("request halted %v", err))
-				}
-				fmt.Print(response)
+			//wg.Add(1)
+			if req := prepareRequest(username, site, data); req != nil {
+				reqs = append(reqs, req)
 			}
 		}
-	}
 
-	return true, nil
+		var wg sync.WaitGroup
+		for _, req := range reqs {
+			wg.Add(1)
+			go doRequest(&wg, req, sl.Client)
+		}
+		wg.Wait()
+	}
+	return false, err
 }
 
-func prepareRequest(client *http.Client, username, site string, data SiteInformation) (*http.Request, error) {
+func doRequest(wg *sync.WaitGroup, req *http.Request, client *http.Client) {
+	defer wg.Done()
+	response, err := client.Do(req)
+	if err != nil {
+		fmt.Println(fmt.Errorf("request halted %v", err))
+	} else if response.StatusCode == http.StatusOK {
+		fmt.Printf("-------->%v\n", response.Status)
+	}
+}
+
+func prepareRequest(username, site string, data SiteInformation) *http.Request {
+
+	//defer wg.Done()
 	var req http.Request
-	//if err!=nil{
-	//	return nil,err
-	//}
 
 	if pattern, found := data.Information["regexCheck"]; found {
 		matched, err := regexp.MatchString(pattern.(string), username)
 		if err != nil {
-			return nil, err
+			//reqChan.Req <- nil
+			//reqChan.Err <- err
+			fmt.Println(err.Error())
+			return nil
 		} else if !matched {
-			return nil, errors.New("regex matching failed, aborting request creation")
+			//reqChan.Req <- nil
+			//reqChan.Err <- errors.New("regex matching failed, aborting request creation")
+			fmt.Println(errors.New("regex matching failed, aborting request creation"))
+			return nil
 		}
 	}
 
@@ -71,7 +98,9 @@ func prepareRequest(client *http.Client, username, site string, data SiteInforma
 
 	u, err := urlpkg.Parse(url)
 	if err != nil {
-		return nil, err
+		//reqChan.Req <- nil
+		//reqChan.Err <- err
+		return nil
 	}
 
 	req.URL = u
@@ -81,11 +110,11 @@ func prepareRequest(client *http.Client, username, site string, data SiteInforma
 		if isHeadReq := data.Information["request_head_only"]; isHeadReq != nil && isHeadReq.(bool) {
 			req.Method = http.MethodHead
 		}
-	case "response_url":
-		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		}
+		//case "response_url":
+		//	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		//		return http.ErrUseLastResponse
+		//	}
 	}
 
-	return &req, nil
+	return &req
 }

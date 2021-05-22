@@ -29,7 +29,11 @@ github.com/magiconair/properties
 ## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
+## explicit
 github.com/mattn/go-isatty
+# github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
+## explicit
+github.com/mgutz/ansi
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
 # github.com/pelletier/go-toml v1.2.0

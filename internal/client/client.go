@@ -43,7 +43,7 @@ func VerboseLog(out io.Writer, logTraffic bool, colorize bool) ClientOption {
 	}
 	logger.SetOutput(out)
 	logger.SetBodyFilter(func(h http.Header) (skip bool, err error) {
-		return !inspectableMIMEType(h.Get("Content-Type")), nil
+		return true, nil
 	})
 	return logger.RoundTripper
 }

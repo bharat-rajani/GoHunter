@@ -78,6 +78,10 @@ func (s *IOStreams) IsStdinTTY() bool {
 	return false
 }
 
+func (s *IOStreams) ColorScheme() *ColorScheme {
+	return NewColorScheme(s.ColorEnabled(), s.ColorSupport256())
+}
+
 func isTerminal(f *os.File) bool {
 	return isatty.IsTerminal(f.Fd())
 }
