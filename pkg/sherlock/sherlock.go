@@ -41,24 +41,23 @@ func (sl *SherLock) Run() (bool, error) {
 		return false, err
 	}
 
+	var wg sync.WaitGroup
 	for _, username := range sl.Usernames {
-		//reqChans := NewSherlockRequests()
-		var reqs []*http.Request
-		for site, data := range sites {
-			//wg.Add(1)
-			if req := prepareRequest(username, site, data); req != nil {
-				reqs = append(reqs, req)
-			}
-		}
-
-		var wg sync.WaitGroup
-		for _, req := range reqs {
-			wg.Add(1)
-			go doRequest(&wg, req, sl.Client)
-		}
-		wg.Wait()
+		wg.Add(1)
+		go sherLockIt(&wg,sl.Client,sites,username)
 	}
+	wg.Wait()
 	return false, err
+}
+
+func sherLockIt(wg *sync.WaitGroup, client *http.Client, sites Sites, username string){
+	defer wg.Done()
+	for site, data := range sites {
+		if req := prepareRequest(username, site, data); req != nil {
+			wg.Add(1)
+			go doRequest(wg, req, client)
+		}
+	}
 }
 
 func doRequest(wg *sync.WaitGroup, req *http.Request, client *http.Client) {
@@ -86,14 +85,16 @@ func prepareRequest(username, site string, data SiteInformation) *http.Request {
 		} else if !matched {
 			//reqChan.Req <- nil
 			//reqChan.Err <- errors.New("regex matching failed, aborting request creation")
-			fmt.Println(errors.New("regex matching failed, aborting request creation"))
+			fmt.Println(pattern,matched,errors.New("regex matching failed, aborting request creation"))
 			return nil
 		}
 	}
 
 	url := data.UrlUsernameFormat
+	url = strings.Replace(url, "{}", username, 1)
 	if urlProbe, found := data.Information["urlProbe"]; found {
 		url = strings.Replace(urlProbe.(string), "{}", username, 1)
+		fmt.Println(urlProbe,url)
 	}
 
 	u, err := urlpkg.Parse(url)
